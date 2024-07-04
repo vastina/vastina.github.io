@@ -162,3 +162,14 @@ class="sourceCode c++"><code class="sourceCode cpp"><span id="cb5-1"><a href="#c
 <span id="cb5-98"><a href="#cb5-98" aria-hidden="true" tabindex="-1"></a>  fs<span class="op">.</span>close<span class="op">();</span></span>
 <span id="cb5-99"><a href="#cb5-99" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
 <span id="cb5-100"><a href="#cb5-100" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="关于最近的一些提交">关于最近的一些提交</h2>
+<p>最开始我想写一个
+<code>HTML Parser</code>以及<code>MarkDown Parser</code>，但是感觉只写<code>Parser</code>有些不够，要不写个
+<code>2d text render</code>
+吧。不过由于我对图形学的完全不了解，怎么创建窗口，怎么加载字体，怎么将得到的文字纹理绘制在自己想画的地方，在不同的地方进行拉伸排版，font
+size
+是什么单位，为什么不能和<code>window.width()</code>简单的相除得到一行可以放多少个字……
+因为图形学上有一堆问题不懂，最后在一次机缘巧合之下我发现可以将通过<code>freetype</code>加载的字体数据里的<code>buffer</code>按一定规律填入<code>vastina::png::png::data</code>，然后写入文件，就得到了文字的图片。虽然很简陋，但是<code>png::setIndex</code>至少可以直接画点。那下一步我再找些库把图片加载到窗口不就好了(虽然比直接操作窗口的绘制数据效率低了不少，多了两次io和编码解码)，然后就有了<code>testcase/png/window.cpp</code>。</p>
+<p>这之后，我打算再学学，尝试写一些平台(windows,
+debian/ubuntu)无关向上层提供的渲染接口，把丑陋的生成再读取图片操作隔离在里面吧，或者学一点图形学也不是不可能(?)
+:)</p>
