@@ -1,0 +1,8 @@
+.vscode
+.idea
+.cache
+
+*.out
+
+*.md
+*.txt
