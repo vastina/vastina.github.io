@@ -1,0 +1,58 @@
+<head>
+  <title>???</title>
+  <style>
+      html { color-scheme: light dark; }
+  </style>
+</head>
+<h1 id="linux-qt-vscode-cmake">linux &amp; qt &amp; vscode &amp;
+cmake</h1>
+<p>install dependencies</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt-get install libgl1-mesa-dev</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt-get install qtbase5-dev qtchooser  qtbase5-dev-tools qt6-base-dev</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt-get install qt5-xxx qt6-xxx libqt5-xxx libqt6-xxx</span></code></pre></div>
+<p>Then import qt library in CMakeLists.txt</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">find_package</span>(Qt<span class="dv">${QT_VERSION_MAJOR}</span> <span class="ot">COMPONENTS</span> Core <span class="ot">REQUIRED</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="bn">test</span> Qt<span class="dv">${QT_VERSION_MAJOR}</span>::Core)</span></code></pre></div>
+<p>For other modules, see <a
+href="https://doc.qt.io/qt-5/qtmodules.html">qt5modules-doc</a> or <a
+href="https://doc.qt.io/qt-6/qtmodules.html">qt6modules-doc</a></p>
+<p>If you want to use qml, <code>apt list -a |grep qt |grep qml</code>
+may help</p>
+<p>Here(Ubuntu22.04, default desktop) I cmd <code>unset GTK_PATH</code>
+to avoid a launch failure, I don’t know what it will affect, but my
+desktop-gui works well still, maybe qt has some conflits with gtk.</p>
+<p>Here is a example of CMakeLists.txt</p>
+<pre><code>cmake_minimum_required(VERSION 3.8)
+
+set(project_name test)
+project(${project_name} LANGUAGES CXX)
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+
+add_compile_options(&quot;-Wall&quot; &quot;-Wextra&quot;)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_BUILD_TYPE Debug)
+
+set(QT_VERSION_MAJOR 6)
+find_package(QT NAMES Qt6 COMPONENTS Core Gui Widgets Qml Quick REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Gui REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Qml REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Quick REQUIRED)
+
+add_executable(${project_name}
+  main.cpp
+)
+target_link_libraries(${project_name} Qt${QT_VERSION_MAJOR}::Core)
+target_link_libraries(${project_name} Qt${QT_VERSION_MAJOR}::Gui)
+target_link_libraries(${project_name} Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(${project_name} Qt${QT_VERSION_MAJOR}::Qml)
+target_link_libraries(${project_name} Qt${QT_VERSION_MAJOR}::Quick)</code></pre>

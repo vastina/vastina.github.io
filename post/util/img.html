@@ -1,0 +1,141 @@
+<head>
+  <title>???</title>
+  <style>
+      html { color-scheme: light dark; }
+  </style>
+</head>
+<h1 id="图片二三事">图片二三事</h1>
+<p>大概是两个月前突然想研究一下图片格式问题，稍作记录，代码丢<a
+href="https://github.com/vastina/img">github</a>上了</p>
+<h2 id="bmp">bmp</h2>
+<p>主要参考了 <a
+href="https://web.archive.org/web/20080912171714/http://www.fortunecity.com/skyscraper/windows/364/bmpffrmt.html">bmp.archive</a>
+和 <a
+href="https://zhuanlan.zhihu.com/p/698234015">这篇文章</a>，懒得讲</p>
+<h2 id="png">png</h2>
+<p>.png 格式的图片整体分为三块(chunk)以及文件头，分别是
+<code>IHDR</code>, <code>IDAT</code>, <code>IEND</code>，也就是 header,
+data, end。文件头格式是固定的，为八字节</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">constexpr</span> <span class="dt">char</span> png_signature<span class="op">[</span><span class="dv">8</span><span class="op">]</span> <span class="op">=</span> <span class="op">{</span> <span class="bn">0x89</span><span class="op">,</span> <span class="ch">&#39;P&#39;</span><span class="op">,</span> <span class="ch">&#39;N&#39;</span><span class="op">,</span> <span class="ch">&#39;G&#39;</span><span class="op">,</span> <span class="bn">0x0D</span><span class="op">,</span> <span class="bn">0x0A</span><span class="op">,</span> <span class="bn">0x1A</span><span class="op">,</span> <span class="bn">0x0A</span> <span class="op">};</span></span></code></pre></div>
+<p>后面的三块在结构上其实是相同的，如下(不清楚 32
+位机器上如何，不讨论)</p>
+<pre><code>[数据区的长度，8字节][类型，4字节(&quot;IHDR/...&quot;)][数据区][前两个区的校验位，4字节]</code></pre>
+<h4 id="ihdr">1. ihdr</h4>
+<p>ihdr的数据区是固定的，结构如下</p>
+<pre><code>[width][height][bit_depth][color_type][compression_method][filter_method][interlace_method]</code></pre>
+<p>其中长宽为4字节无符号整数，需要注意大小端序问题，可以用如下方法避免分支判断，其余各一字节，为配置，todo</p>
+<h4 id="idat">2. idat</h4>
+<p>idat的数据区格式和配置里面的
+<code>bit_depth</code>,<code>color_type</code>,<code>compression_method</code>
+有关系，每一行的开头会填入一字节来表示压缩方法，然后根据位宽的不同会有不同的格式，比如最常见的8位宽RGB_color_type:</p>
+<pre><code>[compression_method][[r][g][b]][[r][g][b]]...
+...</code></pre>
+<p>至于要填入多少个单位的RGB，当然是看长宽</p>
+<h4 id="iend的">3. iend的</h4>
+<p>iend数据区一般来说是留空的</p>
+<h4 id="校验位">4. 校验位</h4>
+<p>关于校验位，直接调<code>zlib</code>就好了，任何一个合格的操作系统都应该提供</p>
+<p>下面是一个简单的示例，生成一张 256*256
+的纯蓝色png，编译的时候记得链接zlib，<code>-lz</code>就好</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode c++"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;fstream&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;cstdint&gt;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string&gt;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;string_view&gt;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;vector&gt;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;zlib.h&gt;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="at">static</span> <span class="kw">inline</span> <span class="dt">uint32_t</span> calculate_crc32<span class="op">(</span> <span class="at">const</span> <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">uint8_t</span><span class="op">&gt;&amp;</span> data <span class="op">)</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> crc32<span class="op">(</span> <span class="dv">0</span><span class="bu">L</span><span class="op">,</span> <span class="kw">reinterpret_cast</span><span class="op">&lt;</span><span class="at">const</span> Bytef<span class="op">*&gt;(</span> data<span class="op">.</span>data<span class="op">()</span> <span class="op">),</span> data<span class="op">.</span>size<span class="op">()</span> <span class="op">);</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="at">static</span> <span class="dt">void</span> write_uint32<span class="op">(</span> <span class="bu">std::</span>ofstream<span class="op">&amp;</span> file<span class="op">,</span> <span class="dt">uint32_t</span> value <span class="op">)</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  file<span class="op">.</span>put<span class="op">(</span> <span class="op">(</span> value <span class="op">&gt;&gt;</span> <span class="dv">24</span> <span class="op">)</span> <span class="op">&amp;</span> <span class="bn">0xFF</span> <span class="op">);</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  file<span class="op">.</span>put<span class="op">(</span> <span class="op">(</span> value <span class="op">&gt;&gt;</span> <span class="dv">16</span> <span class="op">)</span> <span class="op">&amp;</span> <span class="bn">0xFF</span> <span class="op">);</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  file<span class="op">.</span>put<span class="op">(</span> <span class="op">(</span> value <span class="op">&gt;&gt;</span> <span class="dv">8</span> <span class="op">)</span> <span class="op">&amp;</span> <span class="bn">0xFF</span> <span class="op">);</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  file<span class="op">.</span>put<span class="op">(</span> value <span class="op">&amp;</span> <span class="bn">0xFF</span> <span class="op">);</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> write_chunk<span class="op">(</span> <span class="bu">std::</span>ofstream<span class="op">&amp;</span> file<span class="op">,</span> <span class="at">const</span> <span class="bu">std::</span>string_view<span class="op">&amp;</span> type<span class="op">,</span> <span class="at">const</span> <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">uint8_t</span><span class="op">&gt;&amp;</span> data <span class="op">)</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  write_uint32<span class="op">(</span> file<span class="op">,</span> data<span class="op">.</span>size<span class="op">()</span> <span class="op">);</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  file<span class="op">.</span>write<span class="op">(</span> type<span class="op">.</span>data<span class="op">(),</span> <span class="dv">4</span> <span class="op">);</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  file<span class="op">.</span>write<span class="op">(</span> <span class="kw">reinterpret_cast</span><span class="op">&lt;</span><span class="at">const</span> <span class="dt">char</span><span class="op">*&gt;(</span> data<span class="op">.</span>data<span class="op">()</span> <span class="op">),</span> data<span class="op">.</span>size<span class="op">()</span> <span class="op">);</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">uint8_t</span><span class="op">&gt;</span> crc_data<span class="op">(</span> type<span class="op">.</span>begin<span class="op">(),</span> type<span class="op">.</span>end<span class="op">()</span> <span class="op">);</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>  <span class="co">// make copy here</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>  crc_data<span class="op">.</span>insert<span class="op">(</span> crc_data<span class="op">.</span>end<span class="op">(),</span> data<span class="op">.</span>begin<span class="op">(),</span> data<span class="op">.</span>end<span class="op">()</span> <span class="op">);</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>  <span class="dt">uint32_t</span> crc <span class="op">=</span> calculate_crc32<span class="op">(</span> crc_data <span class="op">);</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>  write_uint32<span class="op">(</span> file<span class="op">,</span> crc <span class="op">);</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>  <span class="kw">constexpr</span> <span class="dt">uint32_t</span> width <span class="op">=</span> <span class="dv">256</span><span class="op">,</span> height <span class="op">=</span> <span class="dv">256</span><span class="op">;</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>ofstream fs<span class="op">(</span> <span class="st">&quot;blue.png&quot;</span><span class="op">,</span> <span class="bu">std::</span>ios::binary <span class="op">|</span> <span class="bu">std::</span>ios::app <span class="op">);</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>    <span class="kw">constexpr</span> <span class="dt">uint8_t</span> png_signature<span class="op">[</span><span class="dv">8</span><span class="op">]</span> <span class="op">=</span> <span class="op">{</span> <span class="bn">0x89</span><span class="op">,</span> <span class="ch">&#39;P&#39;</span><span class="op">,</span> <span class="ch">&#39;N&#39;</span><span class="op">,</span> <span class="ch">&#39;G&#39;</span><span class="op">,</span> <span class="bn">0x0D</span><span class="op">,</span> <span class="bn">0x0A</span><span class="op">,</span> <span class="bn">0x1A</span><span class="op">,</span> <span class="bn">0x0A</span> <span class="op">};</span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>    fs<span class="op">.</span>write<span class="op">(</span> <span class="kw">reinterpret_cast</span><span class="op">&lt;</span><span class="at">const</span> <span class="dt">char</span><span class="op">*&gt;(</span> png_signature <span class="op">),</span> <span class="dv">8</span> <span class="op">);</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">uint8_t</span><span class="op">&gt;</span> ihdr<span class="op">(</span> <span class="dv">13</span> <span class="op">);</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>    <span class="kw">union</span> <span class="op">{</span></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>      <span class="dt">uint32_t</span> val<span class="op">;</span></span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>      <span class="dt">uint8_t</span> bytes<span class="op">[</span><span class="dv">4</span><span class="op">];</span></span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> u<span class="op">;</span></span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>    u<span class="op">.</span>val <span class="op">=</span> width<span class="op">;</span></span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> u<span class="op">.</span>bytes<span class="op">[</span><span class="dv">3</span><span class="op">];</span></span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> u<span class="op">.</span>bytes<span class="op">[</span><span class="dv">2</span><span class="op">];</span></span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">=</span> u<span class="op">.</span>bytes<span class="op">[</span><span class="dv">1</span><span class="op">];</span></span>
+<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">=</span> u<span class="op">.</span>bytes<span class="op">[</span><span class="dv">0</span><span class="op">];</span></span>
+<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a>    u<span class="op">.</span>val <span class="op">=</span> height<span class="op">;</span></span>
+<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">4</span><span class="op">]</span> <span class="op">=</span> u<span class="op">.</span>bytes<span class="op">[</span><span class="dv">3</span><span class="op">];</span></span>
+<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">5</span><span class="op">]</span> <span class="op">=</span> u<span class="op">.</span>bytes<span class="op">[</span><span class="dv">2</span><span class="op">];</span></span>
+<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">6</span><span class="op">]</span> <span class="op">=</span> u<span class="op">.</span>bytes<span class="op">[</span><span class="dv">1</span><span class="op">];</span></span>
+<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">7</span><span class="op">]</span> <span class="op">=</span> u<span class="op">.</span>bytes<span class="op">[</span><span class="dv">0</span><span class="op">];</span></span>
+<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">8</span><span class="op">]</span> <span class="op">=</span> <span class="dv">8</span><span class="op">;</span> <span class="co">// bit_depth</span></span>
+<span id="cb5-59"><a href="#cb5-59" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">9</span><span class="op">]</span> <span class="op">=</span> <span class="dv">2</span><span class="op">;</span> <span class="co">// color_type rgb</span></span>
+<span id="cb5-60"><a href="#cb5-60" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">10</span><span class="op">]</span> <span class="op">=</span> <span class="dv">0</span><span class="op">;</span><span class="co">// compression_method</span></span>
+<span id="cb5-61"><a href="#cb5-61" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">11</span><span class="op">]</span> <span class="op">=</span> <span class="dv">0</span><span class="op">;</span><span class="co">// filter_method</span></span>
+<span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a>    ihdr<span class="op">[</span><span class="dv">12</span><span class="op">]</span> <span class="op">=</span> <span class="dv">0</span><span class="op">;</span><span class="co">// interlace_method</span></span>
+<span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a>    write_chunk<span class="op">(</span> fs<span class="op">,</span> <span class="st">&quot;IHDR&quot;</span><span class="op">,</span> ihdr <span class="op">);</span></span>
+<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb5-65"><a href="#cb5-65" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">uint8_t</span><span class="op">&gt;</span> data<span class="op">(</span>width <span class="op">*</span> height <span class="op">*</span> <span class="dv">3</span> <span class="op">+</span> height<span class="op">);</span></span>
+<span id="cb5-66"><a href="#cb5-66" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span></span>
+<span id="cb5-67"><a href="#cb5-67" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-68"><a href="#cb5-68" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span> <span class="dt">unsigned</span> y <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> y <span class="op">&lt;</span> height<span class="op">;</span> y<span class="op">++</span> <span class="op">)</span></span>
+<span id="cb5-69"><a href="#cb5-69" aria-hidden="true" tabindex="-1"></a>      data<span class="op">[</span>y <span class="op">*</span> width <span class="op">*</span> <span class="dv">3</span> <span class="op">+</span> y<span class="op">]</span> <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb5-70"><a href="#cb5-70" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span> <span class="dt">unsigned</span> y <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> y <span class="op">&lt;</span> height<span class="op">;</span> y<span class="op">++</span> <span class="op">)</span></span>
+<span id="cb5-71"><a href="#cb5-71" aria-hidden="true" tabindex="-1"></a>      <span class="cf">for</span><span class="op">(</span> <span class="dt">unsigned</span> x <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> x <span class="op">&lt;</span> width<span class="op">;</span> x<span class="op">++</span> <span class="op">){</span></span>
+<span id="cb5-72"><a href="#cb5-72" aria-hidden="true" tabindex="-1"></a>        <span class="dt">uint32_t</span> index <span class="op">=</span> <span class="op">(</span> y <span class="op">*</span> width <span class="op">+</span> x <span class="op">)</span> <span class="op">*</span> <span class="dv">3</span> <span class="op">+</span> y<span class="op">;</span></span>
+<span id="cb5-73"><a href="#cb5-73" aria-hidden="true" tabindex="-1"></a>        data<span class="op">[</span>index <span class="op">+</span> <span class="dv">1</span><span class="op">]</span> <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb5-74"><a href="#cb5-74" aria-hidden="true" tabindex="-1"></a>        data<span class="op">[</span>index <span class="op">+</span> <span class="dv">2</span><span class="op">]</span> <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb5-75"><a href="#cb5-75" aria-hidden="true" tabindex="-1"></a>        data<span class="op">[</span>index <span class="op">+</span> <span class="dv">3</span><span class="op">]</span> <span class="op">=</span> <span class="bn">0xff</span><span class="op">;</span></span>
+<span id="cb5-76"><a href="#cb5-76" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-77"><a href="#cb5-77" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb5-78"><a href="#cb5-78" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span></span>
+<span id="cb5-79"><a href="#cb5-79" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">uint8_t</span><span class="op">&gt;</span> compressed_data<span class="op">(</span> <span class="op">::</span>compressBound<span class="op">(</span> data<span class="op">.</span>size<span class="op">()</span> <span class="op">)</span> <span class="op">+</span> <span class="dv">4</span> <span class="op">);</span></span>
+<span id="cb5-80"><a href="#cb5-80" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb5-81"><a href="#cb5-81" aria-hidden="true" tabindex="-1"></a>      <span class="kw">constexpr</span> <span class="dt">char</span> idat_signature<span class="op">[</span><span class="dv">4</span><span class="op">]</span> <span class="op">=</span> <span class="op">{</span> <span class="ch">&#39;I&#39;</span><span class="op">,</span> <span class="ch">&#39;D&#39;</span><span class="op">,</span> <span class="ch">&#39;A&#39;</span><span class="op">,</span> <span class="ch">&#39;T&#39;</span> <span class="op">};</span></span>
+<span id="cb5-82"><a href="#cb5-82" aria-hidden="true" tabindex="-1"></a>      compressed_data<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> idat_signature<span class="op">[</span><span class="dv">0</span><span class="op">];</span></span>
+<span id="cb5-83"><a href="#cb5-83" aria-hidden="true" tabindex="-1"></a>      compressed_data<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> idat_signature<span class="op">[</span><span class="dv">1</span><span class="op">];</span></span>
+<span id="cb5-84"><a href="#cb5-84" aria-hidden="true" tabindex="-1"></a>      compressed_data<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">=</span> idat_signature<span class="op">[</span><span class="dv">2</span><span class="op">];</span></span>
+<span id="cb5-85"><a href="#cb5-85" aria-hidden="true" tabindex="-1"></a>      compressed_data<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">=</span> idat_signature<span class="op">[</span><span class="dv">3</span><span class="op">];</span></span>
+<span id="cb5-86"><a href="#cb5-86" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-87"><a href="#cb5-87" aria-hidden="true" tabindex="-1"></a>    <span class="kw">auto</span> compressed_size <span class="op">{</span> compressed_data<span class="op">.</span>size<span class="op">()</span> <span class="op">-</span> <span class="dv">4</span> <span class="op">};</span></span>
+<span id="cb5-88"><a href="#cb5-88" aria-hidden="true" tabindex="-1"></a>    <span class="op">::</span>compress<span class="op">(</span> compressed_data<span class="op">.</span>data<span class="op">()</span> <span class="op">+</span> <span class="dv">4</span><span class="op">,</span> <span class="op">&amp;</span>compressed_size<span class="op">,</span> data<span class="op">.</span>data<span class="op">(),</span> data<span class="op">.</span>size<span class="op">()</span> <span class="op">);</span></span>
+<span id="cb5-89"><a href="#cb5-89" aria-hidden="true" tabindex="-1"></a>    compressed_data<span class="op">.</span>resize<span class="op">(</span> compressed_size <span class="op">+</span> <span class="dv">4</span> <span class="op">);</span></span>
+<span id="cb5-90"><a href="#cb5-90" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-91"><a href="#cb5-91" aria-hidden="true" tabindex="-1"></a>    write_uint32<span class="op">(</span> fs<span class="op">,</span> compressed_size <span class="op">);</span></span>
+<span id="cb5-92"><a href="#cb5-92" aria-hidden="true" tabindex="-1"></a>    fs<span class="op">.</span>write<span class="op">(</span> <span class="kw">reinterpret_cast</span><span class="op">&lt;</span><span class="at">const</span> <span class="dt">char</span><span class="op">*&gt;(</span> compressed_data<span class="op">.</span>data<span class="op">()</span> <span class="op">),</span> compressed_size <span class="op">+</span> <span class="dv">4</span> <span class="op">);</span></span>
+<span id="cb5-93"><a href="#cb5-93" aria-hidden="true" tabindex="-1"></a>    write_uint32<span class="op">(</span> fs<span class="op">,</span> calculate_crc32<span class="op">(</span> compressed_data <span class="op">)</span> <span class="op">);</span></span>
+<span id="cb5-94"><a href="#cb5-94" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb5-95"><a href="#cb5-95" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span></span>
+<span id="cb5-96"><a href="#cb5-96" aria-hidden="true" tabindex="-1"></a>    write_chunk<span class="op">(</span> fs<span class="op">,</span> <span class="st">&quot;IEND&quot;</span><span class="op">,</span> <span class="op">{}</span> <span class="op">);</span></span>
+<span id="cb5-97"><a href="#cb5-97" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb5-98"><a href="#cb5-98" aria-hidden="true" tabindex="-1"></a>  fs<span class="op">.</span>close<span class="op">();</span></span>
+<span id="cb5-99"><a href="#cb5-99" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb5-100"><a href="#cb5-100" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
