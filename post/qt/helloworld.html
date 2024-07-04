@@ -1,11 +1,34 @@
 <head>
-  <title>???</title>
+  <title>helloworld</title>
   <style>
       html { color-scheme: light dark; }
+      body {
+        background-color: #282c34;
+        color: white;
+        font-family: Arial, sans-serif;
+        min-height: 100vh;
+        margin: 0;
+        width: 100%;
+      }
+      .centered {
+        text-align: center;
+      }
+    pre {
+      display: inline-block;
+      text-align: left;
+      max-width: 80%;
+      margin: 0.5em auto;
+      padding: 0.5em;
+      background: #282c34;
+      border-radius: 5px;
+      overflow: auto;
+    }
   </style>
-</head>
-<h1 id="linux-qt-vscode-cmake">linux &amp; qt &amp; vscode &amp;
-cmake</h1>
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/atom-one-dark.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head><h1 id="qt-cmake-vscode-linux">qt &amp; cmake &amp; vscode &amp;
+linux</h1>
 <p>install dependencies</p>
 <div class="sourceCode" id="cb1"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt-get install libgl1-mesa-dev</span>
@@ -24,35 +47,36 @@ may help</p>
 to avoid a launch failure, I don’t know what it will affect, but my
 desktop-gui works well still, maybe qt has some conflits with gtk.</p>
 <p>Here is a example of CMakeLists.txt</p>
-<pre><code>cmake_minimum_required(VERSION 3.8)
-
-set(project_name test)
-project(${project_name} LANGUAGES CXX)
-
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-
-add_compile_options(&quot;-Wall&quot; &quot;-Wextra&quot;)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_BUILD_TYPE Debug)
-
-set(QT_VERSION_MAJOR 6)
-find_package(QT NAMES Qt6 COMPONENTS Core Gui Widgets Qml Quick REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Gui REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Qml REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Quick REQUIRED)
-
-add_executable(${project_name}
-  main.cpp
-)
-target_link_libraries(${project_name} Qt${QT_VERSION_MAJOR}::Core)
-target_link_libraries(${project_name} Qt${QT_VERSION_MAJOR}::Gui)
-target_link_libraries(${project_name} Qt${QT_VERSION_MAJOR}::Widgets)
-target_link_libraries(${project_name} Qt${QT_VERSION_MAJOR}::Qml)
-target_link_libraries(${project_name} Qt${QT_VERSION_MAJOR}::Quick)</code></pre>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode cmake"><code class="sourceCode cmake"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">cmake_minimum_required</span>(<span class="ot">VERSION</span> <span class="dt">3.8</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">set</span>(project_name test)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">project</span>(<span class="dv">${project_name}</span> <span class="ot">LANGUAGES</span> <span class="ot">CXX</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">set</span>(<span class="dv">CMAKE_INCLUDE_CURRENT_DIR</span> <span class="ot">ON</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="kw">set</span>(<span class="dv">CMAKE_AUTOUIC</span> <span class="ot">ON</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="kw">set</span>(<span class="dv">CMAKE_AUTOMOC</span> <span class="ot">ON</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="kw">set</span>(<span class="dv">CMAKE_AUTORCC</span> <span class="ot">ON</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="kw">add_compile_options</span>(<span class="st">&quot;-Wall&quot;</span> <span class="st">&quot;-Wextra&quot;</span>)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="kw">set</span>(<span class="dv">CMAKE_CXX_STANDARD</span> 17)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="kw">set</span>(<span class="dv">CMAKE_CXX_STANDARD_REQUIRED</span> <span class="ot">ON</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="kw">set</span>(<span class="dv">CMAKE_BUILD_TYPE</span> Debug)</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="kw">set</span>(<span class="dv">QT_VERSION_MAJOR</span> 6)</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="kw">find_package</span>(QT <span class="ot">NAMES</span> Qt6 <span class="ot">COMPONENTS</span> Core Gui Widgets Qml Quick <span class="ot">REQUIRED</span>)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="kw">find_package</span>(Qt<span class="dv">${QT_VERSION_MAJOR}</span> <span class="ot">COMPONENTS</span> Core <span class="ot">REQUIRED</span>)</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="kw">find_package</span>(Qt<span class="dv">${QT_VERSION_MAJOR}</span> <span class="ot">COMPONENTS</span> Gui <span class="ot">REQUIRED</span>)</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="kw">find_package</span>(Qt<span class="dv">${QT_VERSION_MAJOR}</span> <span class="ot">COMPONENTS</span> Widgets <span class="ot">REQUIRED</span>)</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="kw">find_package</span>(Qt<span class="dv">${QT_VERSION_MAJOR}</span> <span class="ot">COMPONENTS</span> Qml <span class="ot">REQUIRED</span>)</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="kw">find_package</span>(Qt<span class="dv">${QT_VERSION_MAJOR}</span> <span class="ot">COMPONENTS</span> Quick <span class="ot">REQUIRED</span>)</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="kw">add_executable</span>(<span class="dv">${project_name}</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>  <span class="bn">main.cpp</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="dv">${project_name}</span> <span class="bn">Qt</span><span class="dv">${QT_VERSION_MAJOR}</span>::Core)</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="dv">${project_name}</span> <span class="bn">Qt</span><span class="dv">${QT_VERSION_MAJOR}</span>::Gui)</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="dv">${project_name}</span> <span class="bn">Qt</span><span class="dv">${QT_VERSION_MAJOR}</span>::Widgets)</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="dv">${project_name}</span> <span class="bn">Qt</span><span class="dv">${QT_VERSION_MAJOR}</span>::Qml)</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="kw">target_link_libraries</span>(<span class="dv">${project_name}</span> <span class="bn">Qt</span><span class="dv">${QT_VERSION_MAJOR}</span>::Quick)</span></code></pre></div>
