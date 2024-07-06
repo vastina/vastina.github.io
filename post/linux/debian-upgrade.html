@@ -1,0 +1,64 @@
+<head>
+  <title>debian-upgrade</title>
+  <style>
+      html { color-scheme: light dark; }
+      body {
+        background-color: #282c34;
+        color: white;
+        font-family: Arial, sans-serif;
+        min-height: 100vh;
+        margin: 0;
+        width: 100%;
+      }
+      .centered {
+        text-align: center;
+      }
+    pre {
+      display: inline-block;
+      text-align: left;
+      max-width: 80%;
+      margin: 0.5em auto;
+      padding: 0.5em;
+      background: #282c34;
+      border-radius: 5px;
+      overflow: auto;
+    }
+  </style>
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/atom-one-dark.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head><h1 id="记一次debian系统安装">记一次debian系统安装</h1>
+<p>问题全部解决完，看着眼前流畅运行的debian想写点东西发现自己全程一张图都没有截/拍。全是文字，权当记录。不包括怎么装系统，以后也许会补充。</p>
+<h4 id="section">6.1</h4>
+<p>debian 官网提供的.iso 内核是6.1的，但是我打算切到 unstable，后面
+<code>sudo apt full-upgrade</code>之后内核会升到6.9，为了等会防止进不去图形界面操作麻烦，先在6.1在<code>NVIDIA-Linux-x86_64-&lt;version&gt;.run</code>下载下来</p>
+<h4 id="nvidia">nvidia</h4>
+<p>记得把<code>nouveau</code>这个弱智给禁掉</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> echo <span class="st">&quot;blacklist nouveau” &gt;&gt; /etc/modprobe.d/blacklist.conf</span></span></code></pre></div>
+<p>然后是装编译驱动的依赖</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install gcc g++ make</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install libprotobuf-dev libleveldb-dev libsnappy-dev libopencv-dev libhdf5-serial-dev protobuf-compiler</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install <span class="at">--no-install-recommends</span> libboost-all-dev  </span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install libopenblas-dev liblapack-dev libatlas-base-dev libgflags-dev libgoogle-glog-dev liblmdb-dev</span></code></pre></div>
+<p>为什么在还是6.1的内核上编译？准确来说，我不清楚，当时神志不清这么做了，记录下来</p>
+<h4 id="sid">sid</h4>
+<p>切到 unstable 的方法很简单，换一下 <code>/etc/apt/sources.list</code>
+或者 <code>/etc/apt/sources.list.d/debain.sources</code>
+的源就好了。这里我用的是清华源</p>
+<pre><code>deb https://mirrors.tuna.tsinghua.edu.cn/debian/ sid main contrib non-free non-free-firmware
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ sid main contrib non-free non-free-firmware</code></pre>
+<p>然后就是 <code>update</code> <code>upgrade</code>
+<code>full-upgrade</code> 三连了，记得进<code>tty3</code>什么的。</p>
+<h4 id="section-1">6.9</h4>
+<p>输入<code>sudo reboot</code>之后成功boot上了新的image，比较神奇的是打得开图形界面。简单把一些常用的软件和包安装了之后，想着来都来了，要不把<code>cuda</code>和<code>cudnn</code>也装一下吧。<code>cuda</code>安装过程很顺利，但是<code>cudnn</code>竟然没有<code>debain12</code>的版本（其实也不意外，<code>ubuntu-24.04LTS</code>和<code>debian unstable</code>
+都一样，没有<code>libtinfo5</code>，但是去把<code>bookworm</code>/<code>22.04LTS</code>的拉下来也没有依赖问题）。然后我TM又干了一件蠢事，我把<code>debian11</code>版本给拉下来装了，到这一步问题还不是很严重，但是后面安装的时候它问我要不要重新装一遍<code>nvidia-kernel</code>，我一路yes过去然后就TM寄了。</p>
+<h4 id="reboot">reboot</h4>
+<p>这个时候我还没意识到问题，直到装完<code>fcitx</code>和搜狗打算重启一下。从重启开始已经不对劲了，开机花了整整3,4分钟，最后把登录界面给加载了一半出来，为什么是一半呢，因为只有鼠标和右上的设置，比较搞笑的是尝试进tty3进不去，还会把鼠标给杀了恢复不出来。再经过艰难的reboot后总算是进了<code>recover mod</code>。这个时候出了件很幽默的事，我打算重装驱动，然后<code>NVIDIA-Linux-x86_64-&lt;version&gt;.run</code>告诉我这是在一个实时内核（RT）上，输入<code>uname -r</code>一看，<code>6.9.7-rt-amd64</code>。这个时候我大概意识到了之前为什么升级到了unstable之后老是出问题，有的人是<code>live cd</code>领域大神，有的人在物理机上加载<code>rt-image</code>。找到问题了其实解决起来很简单，但是找到问题真不容易，之前我都是直接用<code>apt</code>拉装<code>nvidia-driver</code>，就没注意到这回事。把<code>/boot</code>里面
+<code>sudo rm *-rt-*</code>然后reboot光速解决从上个月无意间发现清华debian镜像里一个叫<code>sid</code>的东西之后开始的战斗。</p>
+<h4 id="之后">之后</h4>
+<p>科学上网(clash-verge_1.6.4_amd64.AppImage)，配置<code>git</code>
+<code>ssh</code>
+<code>desktop</code>等，装点软件啥的。哪天写个脚本把这些自动干了吧，或者这个新装好的debian我应该能用挺久。最后附上fastfetch</p>
+<p><img src="./fastfetch.png" /></p>
