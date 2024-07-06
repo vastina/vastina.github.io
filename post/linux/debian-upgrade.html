@@ -56,7 +56,7 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="
 都一样，没有<code>libtinfo5</code>，但是去把<code>bookworm</code>/<code>22.04LTS</code>的拉下来也没有依赖问题）。然后我TM又干了一件蠢事，我把<code>debian11</code>版本给拉下来装了，到这一步问题还不是很严重，但是后面安装的时候它问我要不要重新装一遍<code>nvidia-kernel</code>，我一路yes过去然后就TM寄了。</p>
 <h4 id="reboot">reboot</h4>
 <p>这个时候我还没意识到问题，直到装完<code>fcitx</code>和搜狗打算重启一下。从重启开始已经不对劲了，开机花了整整3,4分钟，最后把登录界面给加载了一半出来，为什么是一半呢，因为只有鼠标和右上的设置，比较搞笑的是尝试进tty3进不去，还会把鼠标给杀了恢复不出来。再经过艰难的reboot后总算是进了<code>recover mod</code>。这个时候出了件很幽默的事，我打算重装驱动，然后<code>NVIDIA-Linux-x86_64-&lt;version&gt;.run</code>告诉我这是在一个实时内核（RT）上，输入<code>uname -r</code>一看，<code>6.9.7-rt-amd64</code>。这个时候我大概意识到了之前为什么升级到了unstable之后老是出问题，有的人是<code>live cd</code>领域大神，有的人在物理机上加载<code>rt-image</code>。找到问题了其实解决起来很简单，但是找到问题真不容易，之前我都是直接用<code>apt</code>拉装<code>nvidia-driver</code>，就没注意到这回事。把<code>/boot</code>里面
-<code>sudo rm *-rt-*</code>然后reboot光速解决从上个月无意间发现清华debian镜像里一个叫<code>sid</code>的东西之后开始的战斗。</p>
+<code>sudo rm *-rt-*</code>然后reboot光速解决从上个月无意间发现清华debian镜像里一个叫<code>sid</code>的东西之后开始的战斗。哦对了，记得把之前装的cudnn删了，直接通过<code>apt</code>装就好了。</p>
 <h4 id="之后">之后</h4>
 <p>科学上网(clash-verge_1.6.4_amd64.AppImage)，配置<code>git</code>
 <code>ssh</code>
