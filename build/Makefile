@@ -1,6 +1,6 @@
 # 定义要处理的根目录和 head.txt 文件路径
 DIRECTORY := ..
-HEAD_FILE := ../head.html
+HEAD_FILE := ../head/head.html
 
 # 找出所有 .md 文件
 MD_FILES := $(shell find $(DIRECTORY) -type f -name "*.md")

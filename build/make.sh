@@ -2,11 +2,11 @@
 
 # 定义要处理的根目录和 head.txt 文件路径
 directory="."
-head_filepath="head.txt"
+head_filepath="head/head.html"
 
 # 检查 head.txt 是否存在
 if [ ! -f "$head_filepath" ]; then
-    echo "head.txt 文件未找到！"
+    echo "$head_filepath 文件未找到！"
     exit 1
 fi
 

@@ -15,6 +15,7 @@ sudo apt install gcc g++ make
 sudo apt install libprotobuf-dev libleveldb-dev libsnappy-dev libopencv-dev libhdf5-serial-dev protobuf-compiler
 sudo apt install --no-install-recommends libboost-all-dev  
 sudo apt install libopenblas-dev liblapack-dev libatlas-base-dev libgflags-dev libgoogle-glog-dev liblmdb-dev
+sudo apt install linux-headers-amd64 linux-source
 ```
 为什么在还是6.1的内核上编译？准确来说，我不清楚，当时神志不清这么做了，记录下来
 

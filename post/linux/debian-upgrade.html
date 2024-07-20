@@ -1,29 +1,7 @@
 <head>
   <title>debian-upgrade</title>
-  <style>
-      html { color-scheme: light dark; }
-      body {
-        background-color: #282c34;
-        color: white;
-        font-family: Arial, sans-serif;
-        min-height: 100vh;
-        margin: 0;
-        width: 100%;
-      }
-      .centered {
-        text-align: center;
-      }
-    pre {
-      display: inline-block;
-      text-align: left;
-      max-width: 80%;
-      margin: 0.5em auto;
-      padding: 0.5em;
-      background: #282c34;
-      border-radius: 5px;
-      overflow: auto;
-    }
-  </style>
+  <link rel="stylesheet" href="/head/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/atom-one-dark.min.css">
   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
   <script>hljs.highlightAll();</script>
@@ -41,7 +19,8 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install gcc g++ make</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install libprotobuf-dev libleveldb-dev libsnappy-dev libopencv-dev libhdf5-serial-dev protobuf-compiler</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install <span class="at">--no-install-recommends</span> libboost-all-dev  </span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install libopenblas-dev liblapack-dev libatlas-base-dev libgflags-dev libgoogle-glog-dev liblmdb-dev</span></code></pre></div>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install libopenblas-dev liblapack-dev libatlas-base-dev libgflags-dev libgoogle-glog-dev liblmdb-dev</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install linux-headers-amd64 linux-source</span></code></pre></div>
 <p>为什么在还是6.1的内核上编译？准确来说，我不清楚，当时神志不清这么做了，记录下来</p>
 <h4 id="sid">sid</h4>
 <p>切到 unstable 的方法很简单，换一下 <code>/etc/apt/sources.list</code>
