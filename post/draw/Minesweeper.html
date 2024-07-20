@@ -1,0 +1,46 @@
+<head>
+  <title>Minesweeper</title>
+  <link rel="stylesheet" href="/head/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/atom-one-dark.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head><h1 id="一个简单的扫雷">一个简单的扫雷</h1>
+<h2 id="section"></h2>
+<p>突然想做一个扫雷，主要来自于两件事。一是想到<code>Markdown</code>代码块和普通文本背景颜色稍有不一样，后面在玩颜色的时候想到不同背景颜色怎么让字体尽量凸显出来以及如何处理文字和背景边缘来减少锯齿感；二是玩扫雷的时候因为我脑子cache太小，经常记不住前面确定的雷，想做个标注功能。第一件事这两天没啥进展，就先把第二件事做了吧。扫雷好在只要画方框和单个数字，所以渲染其实很简单。</p>
+<h2 id="section-1"></h2>
+<p>源码丢在<a
+href="https://github.com/vastina/text/tree/master/Minesweeper">这</a>了，内容也比较简单。</p>
+<ul>
+<li><code>borad.hpp</code>，
+这个是用来描述游戏内容和绘制细节的，<code>Borad</code>和如何绘制无关，<code>drawer</code>和游戏内容不怎么相干。不过当时在想是把<code>Board</code>
+还是 <code>drawer</code> 传出去给对方，最后是想着 <code>drawer</code>
+获取具体对象开始draw，不过<code>drawer</code>开几个接口给<code>Board</code>，<code>Board</code>不需要关心具体细节这种也说得通，目前只是无伤大雅的细节。不得不多提一下的是
+<code>drawer</code>，其实不过是给每个<code>unit</code>分配了一个
+<code>typeSetter</code>，<code>typeSetter</code> 是啥，就是个拿着
+<code>base_board</code>的引用在上面调接口画具体东西的。<code>typeSetter</code>
+的主要任务打算是拿来排版，不过这里刚好也能用得上，涂个不同情况<code>unit</code>的背景颜色和对应数字。</li>
+<li><code>game.hpp</code>，描述游戏流程的，游戏四个对象都在这一个类里面给它调用。首先是
+<code>Player</code>，其实就是个基本的窗口，对<code>SDL2</code>做了一层浅封装，方便一点；然后是
+<code>DrawBoard</code>，拿着从 <code>Player</code> 那里来的
+<code>Texture</code> 在上面涂颜色，比如 <code>setIndex</code>
+<code>setLine</code> <code>DrawChar</code>(加载文字的纹理用的freetype)
+什么的；再就是前面提到的俩 <code>game_board</code> 和
+<code>drawer</code>。
+写这两特别是<code>game.hpp</code>的时候有种说不出来的流畅感觉，就像写作文有灵感一样，洋洋洒洒一下就把想表达的信息敲了下来</li>
+</ul>
+<h2 id="section-2"></h2>
+<p>到目前游戏差不多是个能玩的程度了，不过还有两点影响体验的我没怎么动。一个是游戏结束的时候如何重新开始，写个
+<code>reset</code> 方法不难，我也已经写了，但是 <code>ui</code>
+做起来还是有点麻烦，所以先糊了个 <code>cout</code>
+<code>cin</code>。不过在终端那里阻塞着又有一个问题就是 windows
+会因为窗口陷入未响应状态(如果这个时候你在窗口上尝试关闭什么的)对程序做些处理，虽然回应了终端之后可以正常关闭或重开。再开一个线程窗口和终端互相通知也行，可以随时通过鼠标点一下关闭结束，但是我感觉观感不好，要做窗口程序还是尽量百分百可以通过鼠标点点点操作吧，只留一个按y重开不如阻塞在终端那。二是雷的分布与配置，如果注重随机性有
+<code>firstClick</code>
+也够了，之后也许会做一个注重确定性，只要不犯错都尽量通关。重点是配置，也就是游戏内调整生成的地图，又是
+<code>ui</code> 问题， <code>restart</code> 和 <code>quit</code>
+好做，获取输入有点麻烦，还没想好，就先不做 <code>ui</code> 了。</p>
+<h2 id="section-3"></h2>
+<p>说起来写 <code>game.hpp</code> 也让我对 <code>callback</code> 和
+<code>event</code>
+多了一点思考。一开始我直接在<code>window.hpp</code>里面加了个<code>mousehandle</code>，用来描蓝框，复制东西。后来又把它改成一个抽象类，具体的行为写到<code>main.hpp</code>里面。不过到了写扫雷游戏对于鼠标的响应时其实也没用上，因为我响应鼠标最后是为了更新状态，要更新状态就要获取<code>Game</code>类里的成员去调用它们的接口，通过继承的好处是对于不同的响应可以有一个统一的基类，但是我现在只需要几个简单的响应，那为什么不捕获<code>this</code>写<code>lambda</code>或者直接在通过成员函数响应事件呢，没必要去<code>override</code>原来的基类。后面我临时给出的解决方法是把基类的成员提出来建了个类叫<code>mousestate</code>，至少比把这些复制到<code>Game</code>类好点。通过响应事件来进行延迟调用一个预先设置好的方法，比起事件和延迟，更重要的似乎是保存与更新functor(一时想不到别的词了)的状态。<code>mousehandle</code>
+和 <code>Player</code>的<code>handle</code>机制都还得改。</p>
