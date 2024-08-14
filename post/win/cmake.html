@@ -12,7 +12,7 @@ id="在windows使用cmake构建项目的一点感悟">在windows使用cmake构�
 <h2 id="precompiled-binary">precompiled binary</h2>
 <p>如果是比较知名的开源项目，release里面有对比较常见平台(自然就包括windows)的预编译，我会优先考虑。写了<code>findxxx.cmake</code>最好，没写也算方便。相比于Linux，在windows使用cmake的一大痛点在于环境与路径，不过好在
 cmake 有一个
-<code>policy</code>，<code>CMP0074</code>允许我们设置<code>xxx_ROOt</code>来找到对应的库。比如这是<code>SDL2</code>的预编译文件</p>
+<code>policy</code>，<code>CMP0074</code>允许我们设置<code>xxx_ROOT</code>来找到对应的库。比如这是<code>SDL2</code>的预编译文件</p>
 <pre><code>${env}/SDL2/2.30.0/-|
                     /cmake
                     /docs
@@ -20,9 +20,15 @@ cmake 有一个
                     /lib
                     /README.txt</code></pre>
 <p>那么只需要在<code>find_package</code>前面加上<code>set(SDL2_ROOT "${env}/SDL2/2.30.0")</code>就好了。env是什么，是我预先设置好的
-<code>set(env "C:/ProgramData/scoop/apps")</code>，出于方便把东西放在一起，并不是通过`<code>scoop</code>下载的。有一个坏处是
+<code>set(env "C:/ProgramData/scoop/apps")</code>，出于方便把东西放在一起，并不是通过<code>scoop</code>下载的。有一个坏处是
 <code>scoop install SDL2</code>
-如果找不到默认会把原来的，也就是我手动放进去的也删除了，要注意备份。至于<code>target_link_libraries</code>的事情，一般搜一下<code>xxx cmake</code>，然后第一个<code>stack overflow</code>点进去就知道应该用什么名字::名字或者${变量}了</p>
+如果找不到默认会把原来的，也就是我手动放进去的也删除了，要注意备份。至于<code>target_link_libraries</code>的事情，一般搜一下<code>xxx cmake</code>，然后第一个<code>stack overflow</code>点进去就知道应该用什么了，一般也就是
+名字::名字或者${名字_LIBRARIES}</p>
+<h2 id="thirdparty-tools">thirdparty tools</h2>
+<ul>
+<li>通过<code>xrepo</code>下载为<code>xmake</code>打包的库，一般会提供<code>findxxx.cmake</code>或<code>xxx-config.cmake</code>，至少也有一个<code>pkgConfig</code>文件(.pc)。使用很方便，而且带了版本信息，也方便管理</li>
+<li><code>vcpkg</code>，没用过</li>
+</ul>
 <h2 id="fetchcontent">FetchContent</h2>
 <p>使用<code>include(FetchContent)</code>引入，原理不明，大概会根据根目录下给出的构建描述生成.lib
 .dll文件，再手动处理一下<code>include</code>就好了。不过由于众所周知的原因，我更喜欢先把东西拉到本地，比起<code>GIT_REPOSITORY</code>和<code>URL</code>，显然<code>SOURCE_DIR</code>的生成速度更快</p>
@@ -40,5 +46,6 @@ only的库更加受到cpper们的喜爱。现在我用到的俩，一是<code>fm
 <li>不用<code>include_directories</code>，使用<code>target_include_directories(xxx PRIVATE)</code>，不过由于<code>clangd</code>找不到标头，我还是加了一行<code>include_directories("D:\\Microsoft Visual Studio\\2022\\Professional\\VC\\Tools\\MSVC\\14.40.33807\\include")</code></li>
 <li>使用<code>visual studio</code>预先生成的<code>CMakePresets.json</code>，方便cmake找到工具链</li>
 <li>使用<code>set_property</code>设置C++标准，<code>set(CMAKE_CXX_STANDARD xx)</code>在windows似乎不管用</li>
-<li>使用<code>set(CMAKE_CXX_FLAGS_RELEASE "/xxx")</code>来设置不同情况的编译选项，对应的当然就是<code>CMAKE_CXX_FLAGS_DEBUG</code>。MSVC的命令行是用斜杠开头不是横杠</li>
+<li>使用<code>set(CMAKE_CXX_FLAGS_RELEASE "/xxx")</code>来设置不同情况的编译选项，对应的当然就是<code>CMAKE_CXX_FLAGS_DEBUG</code>。MSVC的命令行是用斜杠开头不是横杠，不过
+<code>-fsanitize=xxx</code>是个例外</li>
 </ul>
